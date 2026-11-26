@@ -67,9 +67,12 @@ def create_zip_file() -> str | None:
    #    root_dir = production_path
    # )
 
+   # Cria o zip
    with zipfile.ZipFile (zip_file_name, 'w', compression=zipfile.ZIP_DEFLATED) as zip:
       for file in files:
-         zip.write(file, filename = file.name)
+         zip.write(file, arcname = file.name)
+
+      print(move_production_files()) # Move a pasta com os arquivos para pasta entregues
 
    return zip_file_name
 
@@ -86,26 +89,21 @@ def move_production_files() -> str | None:
       return None
 
    date_now = datetime.now().strftime('%Y_%m_%d_%H%M%S')
-
-   current_folder = Path(date_now) # Pasta que vai receber os arquivos de producao
-   current_folder.mkdir(parents=True, exist_ok=True)
-
+   current_folder = destiny_folder / date_now
    moved_files = 0
 
    # Move os arquivos de producao para a pasta com a data atual
    for file in production_folder.iterdir():
-      origin = production_folder / file.name
+      current_folder.mkdir(parents=True, exist_ok=True)
+
       destiny = current_folder / file.name
       
-      shutil.move(origin, destiny) 
+      shutil.move(str(file), str(destiny)) 
       moved_files += 1
 
-   # Move a pasta com a data atual para a pasta entregues
-   shutil.move(current_folder, destiny_folder)
-
-   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_files == 0 else f'{moved_files} movido(s) para a pasta {destiny_folder.name}.'
+   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_files == 0 else f'Pasta {date_now} gerada com {moved_files} e movida para a pasta {destiny_folder.name}.'
 
    return message
 
-# create_zip_file()
-print(move_production_files())
+create_zip_file()
+# print(move_production_files())
