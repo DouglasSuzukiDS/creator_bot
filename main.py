@@ -10,6 +10,7 @@ from utils.html_body import html_body
 from utils.send_email import send_email
 from utils.format_mb import format_mb
 from utils.get_path import get_path
+from utils.email_config import email_config
 
 load_dotenv()
 
@@ -124,16 +125,17 @@ def move_production_files() -> str | None:
 def send_email(date: str, moved_files: int) -> str | None:
    date_br_format = datetime.strptime(date, date_format).strftime('%d/%m/%Y')
    body_content = html_body(date_br_format, moved_files)
+   email_conf = email_config()
 
-   SMTP_SERVER = os.getenv('SMTP_SERVER')
-   SMTP_PORT = int(os.getenv('SMTP_PORT'))
-   EMAIL_USER = os.getenv('EMAIL_USER')
-   EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+   SMTP_SERVER = email_conf.SMTP_SERVER
+   SMTP_PORT = int(email_conf.SMTP_PORT)
+   EMAIL_USER = email_conf.EMAIL_USER
+   EMAIL_PASSWORD = email_conf.EMAIL_PASSWORD
 
    message = EmailMessage()
    message['Subject'] = f'🚀 Drop VIP Liberado! Conteúdos Exclusivos de {date_br_format}'
    message['From'] = EMAIL_USER
-   message['To'] = os.getenv('EMAIL_RECIPIENT')
+   message['To'] = email_conf.EMAIL_RECIPIENT
    message.set_content(
       f"Drop VIP Liberado em {date_br_format} ({moved_files} arquivos inclusos).\n"
       "O pacote .zip segue em anexo."

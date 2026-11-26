@@ -3,15 +3,17 @@ import os
 
 @dataclass
 class EmailConfig:
-  servidor_smtp: str
-  porta_smtp: int
-  email_remetente: str | None
-  senha_app: str | None
+  SMTP_SERVER: str
+  SMTP_PORT: int
+  EMAIL_USER: str | None
+  EMAIL_PASSWORD: str | None
+  EMAIL_RECIPIENT: str | None
 
 def email_config() -> EmailConfig:
    return EmailConfig(
-      servidor_smtp = os.getenv('SMTP_SERVER'),
-      porta_smtp = int(os.getenv('SMTP_PORT')),
-      email_remetente = os.getenv('EMAIL_USER'),
-      senha_app = os.getenv('EMAIL_PASSWORD')
+      SMTP_SERVER = os.getenv('SMTP_SERVER'),
+      SMTP_PORT = int(os.getenv('SMTP_PORT')),
+      EMAIL_USER = os.getenv('EMAIL_USER'),
+      EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD'),
+      EMAIL_RECIPIENT= os.getenv('EMAIL_RECIPIENT')
    )
