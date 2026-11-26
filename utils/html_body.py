@@ -1,4 +1,4 @@
-def html_body(date_formatted: str, allowed_files: list[str]) -> str:
+def html_body(date_formatted: str, files: int) -> str:
    html = """\
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -68,5 +68,5 @@ def html_body(date_formatted: str, allowed_files: list[str]) -> str:
    # )
 
    return html.replace('{data_drop}', date_formatted).replace(
-      '{total_arquivos}', str(len(allowed_files))
+      '{total_arquivos}', str(files)
    )

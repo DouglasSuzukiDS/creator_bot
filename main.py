@@ -1,9 +1,9 @@
-import os, sys, subprocess
+import os
 import shutil, smtplib
 import zipfile
 import mimetypes
 from pathlib import Path
-from datetime import date, datetime
+from datetime import datetime
 from dotenv import load_dotenv
 from email.message import EmailMessage
 from utils.html_body import html_body
@@ -25,7 +25,7 @@ def files_validation() -> list[Path] | None:
    folder = Path('producao')
 
    if not folder.is_dir():
-      print('Diretorio nao existe')
+      print('Diretorio nao existe ❌')
       return None
 
    files = [
@@ -37,10 +37,10 @@ def files_validation() -> list[Path] | None:
    ]
 
    if not files:
-      print('Pasta existe, mas esta vazia')
+      print('Pasta existe, mas esta vazia ∅')
       return None
 
-   print(f'Arquivo(s) encontrado(s): {len(files)} totalizando {format_mb(files):.2f}mb')
+   print(f'Arquivo(s) encontrado(s) 🔍: {len(files)} totalizando {format_mb(files):.2f}mb')
    
    for index, file in enumerate(files, start=1):
       print(f'{index:02d} => Nome: {file.name} - Tamanho: {format_mb([file]):.2f}mb')
@@ -76,9 +76,9 @@ def create_zip_file() -> str | None:
       for file in files:
          zip.write(file, arcname = file.name)
 
-      print(move_production_files()) # Move a pasta com os arquivos para pasta entregues
+   print(move_production_files()) # Move a pasta com os arquivos para pasta entregues
 
-   return zip_file_name
+   return 'Automacao finalizada sem nenhum problema ✅'
 
 ''' 3. Arquivamento e Limpeza (shutil e pathlib)
       Após a criação bem-sucedida do .zip, mover os arquivos originais de producao/ para entregues/, deixando a pasta de produção pronta para o próximo dia de gravação.
@@ -89,7 +89,7 @@ def move_production_files() -> str | None:
    destiny_folder.mkdir(exist_ok=True)
 
    if not production_folder.exists():
-      print('Diretorio nao existe')
+      print('Diretorio nao existe ❌')
       return None
 
    date_complete = datetime.now().strftime(date_format)
@@ -102,15 +102,17 @@ def move_production_files() -> str | None:
       current_folder.mkdir(parents=True, exist_ok=True)
 
       destiny = current_folder / file.name
+
+      if file.is_file() and file.stat().st_size > 0 and file.suffix.lower() in allowed_extenssions: 
+         moved_files += 1 
       
       shutil.move(str(file), str(destiny)) 
-      moved_files += 1
 
-   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_files == 0 else f'Pasta {date_complete} gerada com {moved_files} e movida para a pasta {destiny_folder.name}.'
+   message = 'Pasta vazia ∅, nenhum arquivo foi movido' if moved_files == 0 else f'Pasta {date_complete} gerada com {moved_files} e movida para a pasta {destiny_folder.name}. ✅'
 
    print(message)
 
-   return send_email(date_complete, date_format, moved_files)
+   return send_email(date_complete, moved_files)
 
 ''' 4. Disparo do E-mail VIP (smtplib e EmailMessage)e)
    Assunto: 🚀 Drop VIP Liberado! Conteúdos Exclusivos de [DD/MM/AAAA]
@@ -121,7 +123,7 @@ def move_production_files() -> str | None:
 '''
 def send_email(date: str, moved_files: int) -> str | None:
    date_br_format = datetime.strptime(date, date_format).strftime('%d/%m/%Y')
-   body_content = html_body(date_br_format, allowed_extenssions)
+   body_content = html_body(date_br_format, moved_files)
 
    SMTP_SERVER = os.getenv('SMTP_SERVER')
    SMTP_PORT = int(os.getenv('SMTP_PORT'))
@@ -162,5 +164,3 @@ def send_email(date: str, moved_files: int) -> str | None:
    return None
 
 print(create_zip_file())
-
-# print(send_email('2026_11_26_171105', 2))
