@@ -16,7 +16,7 @@ load_dotenv()
    Descartar arquivos com 0 bytes (gravações corrompidas ou incompletas).
    Exibir no console o resumo dos arquivos encontrados e o tamanho total do pacote em Megabytes (MB).
 '''
-def archives_validation() -> list[Path] | None:
+def files_validation() -> list[Path] | None:
    folder = Path('producao')
    allowed_extenssions = ['.png', '.jpg', '.mp3', '.txt', '.pdf']
 
@@ -24,24 +24,24 @@ def archives_validation() -> list[Path] | None:
       print('Diretorio nao existe')
       return None
 
-   archives = [
-      arc 
-      for arc in folder.iterdir() 
-      if arc.is_file() 
-      and arc.stat().st_size > 0
-      and arc.suffix.lower() in allowed_extenssions
+   files = [
+      file 
+      for file in folder.iterdir() 
+      if file.is_file() 
+      and file.stat().st_size > 0
+      and file.suffix.lower() in allowed_extenssions
    ]
 
-   if not archives:
+   if not files:
       print('Pasta existe, mas esta vazia')
       return None
 
-   print(f'Arquivo(s) encontrado(s): {len(archives)} totalizando {format_mb(archives):.2f}mb')
+   print(f'Arquivo(s) encontrado(s): {len(files)} totalizando {format_mb(files):.2f}mb')
    
-   for index, arc in enumerate(archives, start=1):
-      print(f'{index:02d} => Nome: {arc.name} - Tamanho: {format_mb([arc]):.2f}mb')
+   for index, file in enumerate(files, start=1):
+      print(f'{index:02d} => Nome: {file.name} - Tamanho: {format_mb([file]):.2f}mb')
 
-   return archives
+   return files
 
 ''' 2. Geração do Pacote do Episódio (datetime e shutil)
    - Capturar a data atual.
@@ -51,32 +51,32 @@ def archives_validation() -> list[Path] | None:
 '''
 def create_zip_file() -> str | None:
    date_now = datetime.now().strftime('%Y_%m_%d_%H%M%S')
-   archives = archives_validation()
+   files = files_validation()
 
-   if not archives:
+   if not files:
       return None
 
    zip_folder_path = get_path('pacotes_zip')
    zip_folder_path.mkdir(parents=True, exist_ok=True) # Cria a pasta se ela nao existir
-   archive_name = f'drop_vip_{date_now}.zip'
-   zip_archive_name = str(zip_folder_path / archive_name)
+   file_name = f'drop_vip_{date_now}.zip'
+   zip_file_name = str(zip_folder_path / file_name)
 
-   # shutil.make_archive(
-   #    base_name = str(zip_folder_path / archive_name),
+   # shutil.make_filehive(
+   #    base_name = str(zip_folder_path / file_name),
    #    format = 'zip',
    #    root_dir = production_path
    # )
 
-   with zipfile.ZipFile (zip_archive_name, 'w', compression=zipfile.ZIP_DEFLATED) as zip:
-      for arc in archives:
-         zip.write(arc, arcname = arc.name)
+   with zipfile.ZipFile (zip_file_name, 'w', compression=zipfile.ZIP_DEFLATED) as zip:
+      for file in files:
+         zip.write(file, filename = file.name)
 
-   return zip_archive_name
+   return zip_file_name
 
 ''' 3. Arquivamento e Limpeza (shutil e pathlib)
       Após a criação bem-sucedida do .zip, mover os arquivos originais de producao/ para entregues/, deixando a pasta de produção pronta para o próximo dia de gravação.
 '''
-def move_production_archives() -> str | None:
+def move_production_files() -> str | None:
    production_folder = Path('producao')
    destiny_folder = Path('entregues')
    destiny_folder.mkdir(exist_ok=True)
@@ -90,22 +90,22 @@ def move_production_archives() -> str | None:
    current_folder = Path(date_now) # Pasta que vai receber os arquivos de producao
    current_folder.mkdir(parents=True, exist_ok=True)
 
-   moved_archives = 0
+   moved_files = 0
 
    # Move os arquivos de producao para a pasta com a data atual
-   for arc in production_folder.iterdir():
-      origin = production_folder / arc.name
-      destiny = current_folder / arc.name
+   for file in production_folder.iterdir():
+      origin = production_folder / file.name
+      destiny = current_folder / file.name
       
       shutil.move(origin, destiny) 
-      moved_archives += 1
+      moved_files += 1
 
    # Move a pasta com a data atual para a pasta entregues
    shutil.move(current_folder, destiny_folder)
 
-   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_archives == 0 else f'{moved_archives} movido(s) para a pasta {destiny_folder.name}.'
+   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_files == 0 else f'{moved_files} movido(s) para a pasta {destiny_folder.name}.'
 
    return message
 
 # create_zip_file()
-print(move_production_archives())
+print(move_production_files())
