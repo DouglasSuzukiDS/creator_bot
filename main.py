@@ -1,15 +1,15 @@
-import os, sys
+import os, sys, subprocess
 import shutil, smtplib
+import zipfile
 from pathlib import Path
-from datetime import date
+from datetime import date, datetime
 from dotenv import load_dotenv
 from utils.html_body import html_body
 from utils.send_email import send_email
 from utils.format_mb import format_mb
+from utils.get_path import get_path
 
 load_dotenv()
-date_now = date.today()
-
 
 ''' 1. Varredura e Validação (pathlib e stat)
    Varrer a pasta producao/ filtrando extensões válidas de mídia (como .png, .jpg, .mp3, .txt, .pdf).
@@ -43,4 +43,34 @@ def archives_validation() -> list[Path] | None:
 
    return archives
 
-archives_validation()
+''' 2. Geração do Pacote do Episódio (datetime e shutil)
+   - Capturar a data atual.
+   - Gerar um arquivo .zip na pasta pacotes_zip/ com a convenção:
+      drop_vip_YYYY_MM_DD.zip (ex: drop_vip_2026_09_14.zip).
+   - Adicionar apenas os arquivos válidos dentro do arquivo comprimido mantendo nomes limpos (sem a pasta local no caminho).
+'''
+def create_zip_file():
+   date_now = datetime.now().strftime('%Y_%m_%d_%H%M%S')
+   archives = archives_validation()
+
+   if not archives:
+      return None
+
+   zip_folder_path = get_path('pacotes_zip')
+   zip_folder_path.mkdir(parents=True, exist_ok=True) # Cria a pasta se ela nao existir
+   archive_name = f'drop_vip_{date_now}.zip'
+   zip_archive_name = str(zip_folder_path / archive_name)
+
+   # shutil.make_archive(
+   #    base_name = str(zip_folder_path / archive_name),
+   #    format = 'zip',
+   #    root_dir = production_path
+   # )
+
+   with zipfile.ZipFile (zip_archive_name, 'w', compression=zipfile.ZIP_DEFLATED) as zip:
+      for arc in archives:
+         zip.write(arc, arcname = arc.name)
+
+   return zip_archive_name
+
+create_zip_file()
