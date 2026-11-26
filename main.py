@@ -49,7 +49,7 @@ def archives_validation() -> list[Path] | None:
       drop_vip_YYYY_MM_DD.zip (ex: drop_vip_2026_09_14.zip).
    - Adicionar apenas os arquivos válidos dentro do arquivo comprimido mantendo nomes limpos (sem a pasta local no caminho).
 '''
-def create_zip_file():
+def create_zip_file() -> str | None:
    date_now = datetime.now().strftime('%Y_%m_%d_%H%M%S')
    archives = archives_validation()
 
@@ -73,4 +73,39 @@ def create_zip_file():
 
    return zip_archive_name
 
-create_zip_file()
+''' 3. Arquivamento e Limpeza (shutil e pathlib)
+      Após a criação bem-sucedida do .zip, mover os arquivos originais de producao/ para entregues/, deixando a pasta de produção pronta para o próximo dia de gravação.
+'''
+def move_production_archives() -> str | None:
+   production_folder = Path('producao')
+   destiny_folder = Path('entregues')
+   destiny_folder.mkdir(exist_ok=True)
+
+   if not production_folder.exists():
+      print('Diretorio nao existe')
+      return None
+
+   date_now = datetime.now().strftime('%Y_%m_%d_%H%M%S')
+
+   current_folder = Path(date_now) # Pasta que vai receber os arquivos de producao
+   current_folder.mkdir(parents=True, exist_ok=True)
+
+   moved_archives = 0
+
+   # Move os arquivos de producao para a pasta com a data atual
+   for arc in production_folder.iterdir():
+      origin = production_folder / arc.name
+      destiny = current_folder / arc.name
+      
+      shutil.move(origin, destiny) 
+      moved_archives += 1
+
+   # Move a pasta com a data atual para a pasta entregues
+   shutil.move(current_folder, destiny_folder)
+
+   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_archives == 0 else f'{moved_archives} movido(s) para a pasta {destiny_folder.name}.'
+
+   return message
+
+# create_zip_file()
+print(move_production_archives())
