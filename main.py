@@ -1,15 +1,20 @@
 import os, sys, subprocess
 import shutil, smtplib
 import zipfile
+import mimetypes
 from pathlib import Path
 from datetime import date, datetime
 from dotenv import load_dotenv
+from email.message import EmailMessage
 from utils.html_body import html_body
 from utils.send_email import send_email
 from utils.format_mb import format_mb
 from utils.get_path import get_path
 
 load_dotenv()
+
+date_format = '%Y_%m_%d_%H%M%S'
+allowed_extenssions = ['.png', '.jpg', '.mp3', '.txt', '.pdf']
 
 ''' 1. Varredura e Validação (pathlib e stat)
    Varrer a pasta producao/ filtrando extensões válidas de mídia (como .png, .jpg, .mp3, .txt, .pdf).
@@ -18,7 +23,6 @@ load_dotenv()
 '''
 def files_validation() -> list[Path] | None:
    folder = Path('producao')
-   allowed_extenssions = ['.png', '.jpg', '.mp3', '.txt', '.pdf']
 
    if not folder.is_dir():
       print('Diretorio nao existe')
@@ -50,7 +54,7 @@ def files_validation() -> list[Path] | None:
    - Adicionar apenas os arquivos válidos dentro do arquivo comprimido mantendo nomes limpos (sem a pasta local no caminho).
 '''
 def create_zip_file() -> str | None:
-   date_now = datetime.now().strftime('%Y_%m_%d_%H%M%S')
+   date_now = datetime.now().strftime(date_format)
    files = files_validation()
 
    if not files:
@@ -68,7 +72,7 @@ def create_zip_file() -> str | None:
    # )
 
    # Cria o zip
-   with zipfile.ZipFile (zip_file_name, 'w', compression=zipfile.ZIP_DEFLATED) as zip:
+   with zipfile.ZipFile (zip_file_name, 'w', compression = zipfile.ZIP_DEFLATED) as zip:
       for file in files:
          zip.write(file, arcname = file.name)
 
@@ -88,8 +92,9 @@ def move_production_files() -> str | None:
       print('Diretorio nao existe')
       return None
 
-   date_now = datetime.now().strftime('%Y_%m_%d_%H%M%S')
-   current_folder = destiny_folder / date_now
+   date_complete = datetime.now().strftime(date_format)
+  
+   current_folder = destiny_folder / date_complete
    moved_files = 0
 
    # Move os arquivos de producao para a pasta com a data atual
@@ -101,9 +106,61 @@ def move_production_files() -> str | None:
       shutil.move(str(file), str(destiny)) 
       moved_files += 1
 
-   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_files == 0 else f'Pasta {date_now} gerada com {moved_files} e movida para a pasta {destiny_folder.name}.'
+   message = 'Pasta vazia nenhum, arquivo foi movido' if moved_files == 0 else f'Pasta {date_complete} gerada com {moved_files} e movida para a pasta {destiny_folder.name}.'
 
-   return message
+   print(message)
 
-create_zip_file()
-# print(move_production_files())
+   return send_email(date_complete, date_format, moved_files)
+
+''' 4. Disparo do E-mail VIP (smtplib e EmailMessage)e)
+   Assunto: 🚀 Drop VIP Liberado! Conteúdos Exclusivos de [DD/MM/AAAA]
+   Título com destaque visual (Drop de Conteúdo Liberado).
+   Badge/card informando a data e a quantidade de arquivos inclusos.
+   Mensagem descontraída agradecendo o apoio da comunidade.
+   Anexo: Detectar o tipo MIME dinamicamente e anexar o arquivo .zip gerado.
+'''
+def send_email(date: str, moved_files: int) -> str | None:
+   date_br_format = datetime.strptime(date, date_format).strftime('%d/%m/%Y')
+   body_content = html_body(date_br_format, allowed_extenssions)
+
+   SMTP_SERVER = os.getenv('SMTP_SERVER')
+   SMTP_PORT = int(os.getenv('SMTP_PORT'))
+   EMAIL_USER = os.getenv('EMAIL_USER')
+   EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+
+   message = EmailMessage()
+   message['Subject'] = f'🚀 Drop VIP Liberado! Conteúdos Exclusivos de {date_br_format}'
+   message['From'] = EMAIL_USER
+   message['To'] = os.getenv('EMAIL_RECIPIENT')
+   message.set_content(
+      f"Drop VIP Liberado em {date_br_format} ({moved_files} arquivos inclusos).\n"
+      "O pacote .zip segue em anexo."
+   )
+
+   message.add_alternative(body_content, subtype='html')
+
+   zip_file = Path('pacotes_zip', f'drop_vip_{date}.zip')
+
+   binary_content = zip_file.read_bytes()
+   mimetype, _ = mimetypes.guess_type(zip_file) # application/zip
+   type = mimetype or 'application/octet-stream' # application/zip | application/octet-stream
+   maintype, subtype = type.split('/', 1) # application, zip (or octet-stream)
+
+   message.add_attachment(
+      binary_content,
+      maintype,
+      subtype,
+      filename = zip_file.name
+   )
+
+   with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT) as server:
+      server.login(EMAIL_USER, EMAIL_PASSWORD)
+      server.send_message(message)
+
+      return 'Email enviado 📨'
+
+   return None
+
+print(create_zip_file())
+
+# print(send_email('2026_11_26_171105', 2))

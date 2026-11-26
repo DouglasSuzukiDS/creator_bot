@@ -1,5 +1,5 @@
-def html_body(data_formatada: str, arquivos_validos: list[str]) -> str:
-   corpo_html = """\
+def html_body(date_formatted: str, allowed_files: list[str]) -> str:
+   html = """\
       <!DOCTYPE html>
       <html lang="pt-BR">
       <head>
@@ -60,9 +60,13 @@ def html_body(data_formatada: str, arquivos_validos: list[str]) -> str:
       </table>
       </body>
       </html>
-   """.format(
-      data_drop=data_formatada,
-      total_arquivos=len(arquivos_validos)
-   )
+   """
 
-   return  corpo_html
+   # return html.format(
+   #    data_drop=date_formatted,
+   #    total_arquivos=len(allowed_files)
+   # )
+
+   return html.replace('{data_drop}', date_formatted).replace(
+      '{total_arquivos}', str(len(allowed_files))
+   )
